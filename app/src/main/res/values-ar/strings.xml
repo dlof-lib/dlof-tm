@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">dlof-TM</string>
+    <string name="app_tagline">صانع قوالب حزم DLoF</string>
+
+    <string name="nav_home">القوالب</string>
+    <string name="nav_new">جديد</string>
+    <string name="nav_design">التصميم</string>
+    <string name="nav_media">الوسائط</string>
+    <string name="nav_package">الحزمة</string>
+    <string name="nav_export">تصدير</string>
+    <string name="nav_settings">الإعدادات</string>
+
+    <string name="home_empty_title">لا توجد قوالب بعد</string>
+    <string name="home_empty_subtitle">أنشئ أول قالب .dlofpkg الخاص بك</string>
+    <string name="fab_new_template">قالب جديد</string>
+
+    <string name="field_id">معرّف الحزمة</string>
+    <string name="field_title">العنوان</string>
+    <string name="field_domain">النوع</string>
+    <string name="field_author">المؤلف</string>
+    <string name="field_language">رمز اللغة</string>
+    <string name="field_version">الإصدار</string>
+
+    <string name="domain_series">سلسلة</string>
+    <string name="domain_book">كتاب</string>
+    <string name="domain_comic">قصة مصورة</string>
+    <string name="domain_document">مستند</string>
+    <string name="domain_qa">سؤال وجواب</string>
+
+    <string name="design_primary">اللون الأساسي</string>
+    <string name="design_secondary">اللون الثانوي</string>
+    <string name="design_background">لون الخلفية</string>
+    <string name="design_text">لون النص</string>
+    <string name="design_font">نوع الخط</string>
+    <string name="design_layout">التخطيط</string>
+
+    <string name="layout_standard">قياسي</string>
+    <string name="layout_card">بطاقات</string>
+    <string name="layout_magazine">مجلة</string>
+    <string name="layout_minimal">مبسّط</string>
+
+    <string name="pkg_base64_mode">وضع base64</string>
+    <string name="pkg_base64_optional">اختياري</string>
+    <string name="pkg_base64_always">دائماً</string>
+    <string name="pkg_base64_never">أبداً</string>
+    <string name="pkg_crypto_enable">تفعيل التشفير (AES-256-GCM)</string>
+    <string name="pkg_crypto_profile">ملف التشفير</string>
+    <string name="pkg_compress_before_encrypt">ضغط قبل التشفير</string>
+
+    <string name="media_chapters">فصول الصور</string>
+    <string name="media_episodes">حلقات الفيديو</string>
+    <string name="media_fonts">ملفات الخطوط</string>
+    <string name="media_add_chapter">إضافة فصل</string>
+    <string name="media_add_episode">إضافة حلقة</string>
+    <string name="media_add_fonts">إضافة خطوط</string>
+    <string name="media_pick_images">اختيار صور</string>
+    <string name="media_pick_video">اختيار فيديو</string>
+    <string name="media_pick_subtitle">اختيار ترجمة (اختياري)</string>
+
+    <string name="export_build">بناء ملف .dlofpkg</string>
+    <string name="export_share">مشاركة</string>
+    <string name="export_success">تم إنشاء الحزمة بنجاح</string>
+    <string name="export_failure">فشل بناء الحزمة</string>
+    <string name="export_summary">ملخص التصدير</string>
+
+    <string name="settings_about">حول dlof-TM</string>
+    <string name="settings_reset">حذف كل القوالب</string>
+
+    <string name="action_save">حفظ</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_cancel">إلغاء</string>
+    <string name="action_next">التالي</string>
+    <string name="action_back">رجوع</string>
+</resources>
