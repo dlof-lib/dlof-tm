@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">dlof-TM</string>
+    <string name="app_tagline">DLoF Package Template Maker</string>
+
+    <string name="nav_home">Templates</string>
+    <string name="nav_new">New</string>
+    <string name="nav_design">Design</string>
+    <string name="nav_media">Media</string>
+    <string name="nav_package">Package</string>
+    <string name="nav_export">Export</string>
+    <string name="nav_settings">Settings</string>
+
+    <string name="home_empty_title">No templates yet</string>
+    <string name="home_empty_subtitle">Create your first .dlofpkg template</string>
+    <string name="fab_new_template">New template</string>
+
+    <string name="field_id">Package ID</string>
+    <string name="field_title">Title</string>
+    <string name="field_domain">Domain</string>
+    <string name="field_author">Author</string>
+    <string name="field_language">Language code</string>
+    <string name="field_version">Version</string>
+
+    <string name="domain_series">series</string>
+    <string name="domain_book">book</string>
+    <string name="domain_comic">comic</string>
+    <string name="domain_document">document</string>
+    <string name="domain_qa">qa</string>
+
+    <string name="design_primary">Primary color</string>
+    <string name="design_secondary">Secondary color</string>
+    <string name="design_background">Background color</string>
+    <string name="design_text">Text color</string>
+    <string name="design_font">Font family</string>
+    <string name="design_layout">Layout</string>
+
+    <string name="layout_standard">standard</string>
+    <string name="layout_card">card</string>
+    <string name="layout_magazine">magazine</string>
+    <string name="layout_minimal">minimal</string>
+
+    <string name="pkg_base64_mode">base64 mode</string>
+    <string name="pkg_base64_optional">optional</string>
+    <string name="pkg_base64_always">always</string>
+    <string name="pkg_base64_never">never</string>
+    <string name="pkg_crypto_enable">Enable encryption (AES-256-GCM)</string>
+    <string name="pkg_crypto_profile">Crypto profile</string>
+    <string name="pkg_compress_before_encrypt">Compress before encrypt</string>
+
+    <string name="media_chapters">Image chapters</string>
+    <string name="media_episodes">Video episodes</string>
+    <string name="media_fonts">Font files</string>
+    <string name="media_add_chapter">Add chapter</string>
+    <string name="media_add_episode">Add episode</string>
+    <string name="media_add_fonts">Add font files</string>
+    <string name="media_pick_images">Pick images</string>
+    <string name="media_pick_video">Pick video</string>
+    <string name="media_pick_subtitle">Pick subtitle (optional)</string>
+
+    <string name="export_build">Build .dlofpkg</string>
+    <string name="export_share">Share</string>
+    <string name="export_success">Package created successfully</string>
+    <string name="export_failure">Failed to build package</string>
+    <string name="export_summary">Export summary</string>
+
+    <string name="settings_about">About dlof-TM</string>
+    <string name="settings_reset">Delete all templates</string>
+
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_next">Next</string>
+    <string name="action_back">Back</string>
+</resources>
