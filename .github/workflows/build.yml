@@ -62,7 +62,7 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
           cache-read-only: ${{ github.event_name == 'pull_request' }}
@@ -77,7 +77,7 @@ jobs:
         # Populates the repo's Dependency Graph (Settings → Security) so
         # Dependabot alerts work for Gradle/Maven dependencies too.
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: gradle/actions/dependency-submission@v4
+        uses: gradle/actions/dependency-submission@v6
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
 
@@ -140,7 +140,7 @@ jobs:
       # No committed Gradle wrapper jar is required — this action installs
       # the pinned Gradle version below and provides dependency caching.
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: ${{ env.GRADLE_VERSION }}
           cache-read-only: ${{ github.event_name == 'pull_request' }}
