@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="dlof_green_dark">#0F5132</color>
+    <color name="dlof_green">#1E8E3E</color>
+    <color name="dlof_green_light">#34C759</color>
+    <color name="dlof_black">#101410</color>
+    <color name="dlof_white">#FFFFFF</color>
+    <color name="dlof_surface_dark">#141B14</color>
+</resources>
