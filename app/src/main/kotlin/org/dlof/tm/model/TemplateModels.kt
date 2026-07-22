@@ -30,7 +30,7 @@ data class VideoEpisode(
     val subtitleFileName: String?
 )
 
-/** ملف خط (media/fonts/fonts/*.ttf|*.otf). */
+/** ملف خط (media/fonts/fonts، بصيغة ttf أو otf). */
 data class FontFile(
     val uri: String,
     val fileName: String
