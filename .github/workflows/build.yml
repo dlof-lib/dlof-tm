@@ -1,68 +1,305 @@
+# dlof-TM — CI/CD
+# ─────────────────────────────────────────────────────────────────────────
+# Pipeline: lint & unit tests → build debug/release APKs → publish GitHub
+# Release on version tags. Hardened with egress auditing, least-privilege
+# permissions per job, Dependency Graph submission, and an approval gate
+# (GitHub Environment) before anything gets released.
+# ─────────────────────────────────────────────────────────────────────────
 name: Build APK
 
 on:
   push:
     branches: [ "main" ]
+    tags: [ "v*.*.*" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      build_release:
+        description: "Also build & sign the release APK on this run"
+        type: boolean
+        default: false
+      version_override:
+        description: "Override the version name for this build (optional, e.g. 1.2.0-rc1)"
+        type: string
+        default: ""
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# Default: no permissions. Each job requests only what it needs.
+permissions: {}
+
+env:
+  GRADLE_VERSION: "8.9"
+  JAVA_VERSION: "17"
+  JAVA_DISTRIBUTION: "temurin"
 
 jobs:
-  build:
+  # ────────────────────────────────────────────────────────────────────────
+  # lint + unit tests — fast feedback on every push and PR
+  # ────────────────────────────────────────────────────────────────────────
+  verify:
+    name: Lint & unit tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
-    # GitHub Actions does not allow the `secrets` context inside `if:`
-    # conditionals directly — it's only usable in `env:`/`with:`. So we
-    # resolve it once here into a plain job-level env var, then branch on
-    # that env var in each step's `if:` below.
-    env:
-      HAS_KEYSTORE: ${{ secrets.DLOFTM_KEYSTORE_BASE64 != '' }}
-
     steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: '17'
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
 
-      # No committed Gradle wrapper jar is required — this action installs
-      # the Gradle version declared in gradle/wrapper/gradle-wrapper.properties
-      # (or the version below) and provides build caching.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.9
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Android Lint
+        run: gradle :app:lintDebug --no-daemon --stacktrace
+
+      - name: Unit tests
+        run: gradle :app:testDebugUnitTests --no-daemon --stacktrace
+
+      - name: Submit Gradle dependency graph
+        # Populates the repo's Dependency Graph (Settings → Security) so
+        # Dependabot alerts work for Gradle/Maven dependencies too.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: gradle/actions/dependency-submission@v4
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload unit test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/testDebugUnitTest
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ────────────────────────────────────────────────────────────────────────
+  # build — debug APK always, release APK on tags / manual opt-in
+  # ────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build APK
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      # `secrets` cannot be referenced directly inside `if:` conditionals,
+      # so it's resolved once here into plain env vars used by `if:` below.
+      HAS_KEYSTORE: ${{ secrets.DLOFTM_KEYSTORE_BASE64 != '' }}
+      IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
+      WANT_RELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.build_release }}
+    outputs:
+      version_name: ${{ steps.version.outputs.name }}
+      version_code: ${{ steps.version.outputs.code }}
+      built_release: ${{ steps.gate.outputs.release }}
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+
+      # No committed Gradle wrapper jar is required — this action installs
+      # the pinned Gradle version below and provides dependency caching.
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Resolve build version
+        id: version
+        run: |
+          set -euo pipefail
+          OVERRIDE="${{ inputs.version_override }}"
+          if [ -n "$OVERRIDE" ]; then
+            NAME="$OVERRIDE"
+          elif [ "$IS_TAG" = "true" ]; then
+            NAME="${GITHUB_REF_NAME#v}"
+          else
+            NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts)
+          fi
+          CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts)
+          echo "name=$NAME"  >> "$GITHUB_OUTPUT"
+          echo "code=$CODE"  >> "$GITHUB_OUTPUT"
+          {
+            echo "### dlof-TM build"
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Version name | \`$NAME\` |"
+            echo "| Version code | \`$CODE\` |"
+            echo "| Commit | \`${GITHUB_SHA::7}\` |"
+            echo "| Trigger | \`${{ github.event_name }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Decide whether to build the release APK
+        id: gate
+        run: |
+          if [ "$HAS_KEYSTORE" = "true" ] && { [ "$IS_TAG" = "true" ] || [ "$WANT_RELEASE" = "true" ]; }; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
       - name: Decode release keystore
-        if: env.HAS_KEYSTORE == 'true'
+        if: steps.gate.outputs.release == 'true'
         run: |
-          echo "${{ secrets.DLOFTM_KEYSTORE_BASE64 }}" | base64 -d > "${{ github.workspace }}/release.keystore"
+          umask 077
+          echo "${{ secrets.DLOFTM_KEYSTORE_BASE64 }}" | base64 -d > "${{ runner.temp }}/release.keystore"
 
       - name: Build release APK
-        if: env.HAS_KEYSTORE == 'true'
+        if: steps.gate.outputs.release == 'true'
         env:
-          DLOFTM_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
+          DLOFTM_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
           DLOFTM_KEYSTORE_PASSWORD: ${{ secrets.DLOFTM_KEYSTORE_PASSWORD }}
           DLOFTM_KEY_ALIAS: ${{ secrets.DLOFTM_KEY_ALIAS }}
           DLOFTM_KEY_PASSWORD: ${{ secrets.DLOFTM_KEY_PASSWORD }}
         run: gradle :app:assembleRelease --no-daemon --stacktrace
 
+      - name: Verify release APK signature
+        if: steps.gate.outputs.release == 'true'
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner | sort -V | tail -n1)
+          if [ -n "$APKSIGNER" ]; then
+            APK=$(find app/build/outputs/apk/release -name '*.apk' | head -n1)
+            "$APKSIGNER" verify --print-certs "$APK"
+          else
+            echo "::warning::apksigner not found on runner — skipping signature verification"
+          fi
+
+      - name: Shred decoded keystore
+        if: always() && steps.gate.outputs.release == 'true'
+        run: shred -u "${{ runner.temp }}/release.keystore" 2>/dev/null || rm -f "${{ runner.temp }}/release.keystore"
+
+      - name: Rename, checksum & size-report APKs
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          V="${{ steps.version.outputs.name }}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+
+          debug_src=$(find app/build/outputs/apk/debug -name '*.apk' | head -n1)
+          if [ -n "$debug_src" ]; then
+            cp "$debug_src" "dist/dlof-TM-${V}-${SHORT_SHA}-debug.apk"
+          fi
+
+          if [ "${{ steps.gate.outputs.release }}" = "true" ]; then
+            release_src=$(find app/build/outputs/apk/release -name '*.apk' | head -n1)
+            if [ -n "$release_src" ]; then
+              cp "$release_src" "dist/dlof-TM-${V}-release.apk"
+            fi
+          fi
+
+          ( cd dist && sha256sum *.apk > SHA256SUMS.txt )
+
+          {
+            echo "### Artifacts"
+            echo "| File | Size | SHA-256 |"
+            echo "|---|---|---|"
+            while read -r sum file; do
+              size=$(du -h "dist/$file" | cut -f1)
+              echo "| \`$file\` | $size | \`${sum:0:12}…\` |"
+            done < dist/SHA256SUMS.txt
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: dlof-TM-debug
-          path: app/build/outputs/apk/debug/*.apk
+          path: |
+            dist/*-debug.apk
+            dist/SHA256SUMS.txt
+          retention-days: 30
+          compression-level: 6
 
       - name: Upload release APK
-        if: env.HAS_KEYSTORE == 'true'
+        if: steps.gate.outputs.release == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: dlof-TM-release
-          path: app/build/outputs/apk/release/*.apk
+          path: |
+            dist/*-release.apk
+            dist/SHA256SUMS.txt
+          retention-days: 90
+          compression-level: 6
+
+  # ────────────────────────────────────────────────────────────────────────
+  # release — publish a GitHub Release when a vX.Y.Z tag is pushed.
+  # Gated behind the "production" GitHub Environment: configure required
+  # reviewers under Settings → Environments → production to require manual
+  # approval before this job runs.
+  # ────────────────────────────────────────────────────────────────────────
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') && needs.build.outputs.built_release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: ${{ steps.publish.outputs.url }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
+      - name: Download release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: dlof-TM-release
+          path: dist
+
+      - name: Create release
+        id: publish
+        uses: softprops/action-gh-release@v2
+        with:
+          name: dlof-TM v${{ needs.build.outputs.version_name }}
+          generate_release_notes: true
+          files: |
+            dist/*-release.apk
+            dist/SHA256SUMS.txt
