@@ -12,6 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    # GitHub Actions does not allow the `secrets` context inside `if:`
+    # conditionals directly — it's only usable in `env:`/`with:`. So we
+    # resolve it once here into a plain job-level env var, then branch on
+    # that env var in each step's `if:` below.
+    env:
+      HAS_KEYSTORE: ${{ secrets.DLOFTM_KEYSTORE_BASE64 != '' }}
 
     steps:
       - name: Checkout
@@ -35,12 +41,12 @@ jobs:
         run: gradle :app:assembleDebug --no-daemon --stacktrace
 
       - name: Decode release keystore
-        if: ${{ secrets.DLOFTM_KEYSTORE_BASE64 != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         run: |
           echo "${{ secrets.DLOFTM_KEYSTORE_BASE64 }}" | base64 -d > "${{ github.workspace }}/release.keystore"
 
       - name: Build release APK
-        if: ${{ secrets.DLOFTM_KEYSTORE_BASE64 != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         env:
           DLOFTM_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
           DLOFTM_KEYSTORE_PASSWORD: ${{ secrets.DLOFTM_KEYSTORE_PASSWORD }}
@@ -55,7 +61,7 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
 
       - name: Upload release APK
-        if: ${{ secrets.DLOFTM_KEYSTORE_BASE64 != '' }}
+        if: env.HAS_KEYSTORE == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: dlof-TM-release
