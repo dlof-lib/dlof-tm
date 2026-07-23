@@ -70,10 +70,10 @@ fun DesignScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            HexColorField(stringResource(R.string.design_primary), primary) { primary = it }
-            HexColorField(stringResource(R.string.design_secondary), secondary) { secondary = it }
-            HexColorField(stringResource(R.string.design_background), background) { background = it }
-            HexColorField(stringResource(R.string.design_text), textColor) { textColor = it }
+            HexColorField(stringResource(R.string.design_primary), primary, onValueChange = { primary = it })
+            HexColorField(stringResource(R.string.design_secondary), secondary, onValueChange = { secondary = it })
+            HexColorField(stringResource(R.string.design_background), background, onValueChange = { background = it })
+            HexColorField(stringResource(R.string.design_text), textColor, onValueChange = { textColor = it })
 
             OutlinedTextField(
                 value = fontFamily,
