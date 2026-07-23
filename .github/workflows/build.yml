@@ -71,7 +71,7 @@ jobs:
         run: gradle :app:lintDebug --no-daemon --stacktrace
 
       - name: Unit tests
-        run: gradle :app:testDebugUnitTests --no-daemon --stacktrace
+        run: gradle :app:testDebugUnitTest --no-daemon --stacktrace
 
       - name: Submit Gradle dependency graph
         # Populates the repo's Dependency Graph (Settings → Security) so
